@@ -16,13 +16,6 @@
 
 package com.google.gson.stream;
 
-import java.io.Closeable;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Arrays;
-import java.util.Objects;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.Strictness;
@@ -30,6 +23,12 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.internal.JsonReaderInternalAccess;
 import com.google.gson.internal.TroubleshootingGuide;
 import com.google.gson.internal.bind.JsonTreeReader;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Reads a JSON (<a href="https://www.ietf.org/rfc/rfc8259.txt">RFC 8259</a>) encoded value as a
@@ -538,7 +537,9 @@ public class JsonReader implements Closeable {
     if (currentPeekedValue == PEEKED_NONE) {
       currentPeekedValue = doPeek();
     }
-    return currentPeekedValue != PEEKED_END_OBJECT && currentPeekedValue != PEEKED_END_ARRAY && currentPeekedValue != PEEKED_EOF;
+    return currentPeekedValue != PEEKED_END_OBJECT
+        && currentPeekedValue != PEEKED_END_ARRAY
+        && currentPeekedValue != PEEKED_EOF;
   }
 
   /** Returns the type of the next token without consuming it. */
@@ -584,130 +585,130 @@ public class JsonReader implements Closeable {
   @SuppressWarnings("fallthrough")
   int doPeek() throws IOException {
     int peekStack = stack[stackSize - 1];
-      switch (peekStack) {
-          case JsonScope.EMPTY_ARRAY:
-              stack[stackSize - 1] = JsonScope.NONEMPTY_ARRAY;
-              break;
-          case JsonScope.NONEMPTY_ARRAY:
-              return doPeekNonEmptyArray(peekStack);
-          case JsonScope.EMPTY_OBJECT:
-          case JsonScope.NONEMPTY_OBJECT:
-              return doPeekObject(peekStack);
-          case JsonScope.DANGLING_NAME:
-              return doPeekDanglingName(peekStack);
-          case JsonScope.EMPTY_DOCUMENT:
-              return doPeekEmptyDocument(peekStack);
-          case JsonScope.NONEMPTY_DOCUMENT:
-              return doPeekNonEmptyDocument(peekStack);
-          case JsonScope.CLOSED:
-              throw new IllegalStateException("JsonReader is closed");
-          default:
-              break;
-      }
-    return doPeekAfterSwitchPeekStack(peekStack);
-    
-  }
-
-  @SuppressWarnings("fallthrough")
-  private int doPeekNonEmptyArray(int peekStack) throws IOException{
-    // Look for a comma before the next element.
-    int c = nextNonWhitespace(true);
-    switch (c) {
-        case ']':
-            return peeked = PEEKED_END_ARRAY;
-        case ';':
-            checkLenient(); // fall-through
-        case ',':
-            break;
-        default:
-            throw syntaxError("Unterminated array");
+    switch (peekStack) {
+      case JsonScope.EMPTY_ARRAY:
+        stack[stackSize - 1] = JsonScope.NONEMPTY_ARRAY;
+        break;
+      case JsonScope.NONEMPTY_ARRAY:
+        return doPeekNonEmptyArray(peekStack);
+      case JsonScope.EMPTY_OBJECT:
+      case JsonScope.NONEMPTY_OBJECT:
+        return doPeekObject(peekStack);
+      case JsonScope.DANGLING_NAME:
+        return doPeekDanglingName(peekStack);
+      case JsonScope.EMPTY_DOCUMENT:
+        return doPeekEmptyDocument(peekStack);
+      case JsonScope.NONEMPTY_DOCUMENT:
+        return doPeekNonEmptyDocument(peekStack);
+      case JsonScope.CLOSED:
+        throw new IllegalStateException("JsonReader is closed");
+      default:
+        break;
     }
     return doPeekAfterSwitchPeekStack(peekStack);
   }
 
   @SuppressWarnings("fallthrough")
-  private int doPeekObject(int peekStack) throws IOException{
+  private int doPeekNonEmptyArray(int peekStack) throws IOException {
+    // Look for a comma before the next element.
+    int c = nextNonWhitespace(true);
+    switch (c) {
+      case ']':
+        return peeked = PEEKED_END_ARRAY;
+      case ';':
+        checkLenient(); // fall-through
+      case ',':
+        break;
+      default:
+        throw syntaxError("Unterminated array");
+    }
+    return doPeekAfterSwitchPeekStack(peekStack);
+  }
+
+  @SuppressWarnings("fallthrough")
+  private int doPeekObject(int peekStack) throws IOException {
     stack[stackSize - 1] = JsonScope.DANGLING_NAME;
     // Look for a comma before the next element.
     if (peekStack == JsonScope.NONEMPTY_OBJECT) {
-        int c = nextNonWhitespace(true);
-        switch (c) {
-            case '}':
-                return peeked = PEEKED_END_OBJECT;
-            case ';':
-                checkLenient(); // fall-through
-            case ',':
-                break;
-            default:
-                throw syntaxError("Unterminated object");
-        }
+      int c = nextNonWhitespace(true);
+      switch (c) {
+        case '}':
+          return peeked = PEEKED_END_OBJECT;
+        case ';':
+          checkLenient(); // fall-through
+        case ',':
+          break;
+        default:
+          throw syntaxError("Unterminated object");
+      }
     }
     int c = nextNonWhitespace(true);
     switch (c) {
-        case '"':
-            return peeked = PEEKED_DOUBLE_QUOTED_NAME;
-        case '\'':
-            checkLenient();
-            return peeked = PEEKED_SINGLE_QUOTED_NAME;
-        case '}':
-            if (peekStack != JsonScope.NONEMPTY_OBJECT) {
-                return peeked = PEEKED_END_OBJECT;
-            } else {
-                throw syntaxError("Expected name");
-            }
-        default:
-            checkLenient();
-            pos--; // Don't consume the first character in an unquoted string.
-            if (isLiteral((char) c)) {
-                return peeked = PEEKED_UNQUOTED_NAME;
-            } else {
-                throw syntaxError("Expected name");
-            }
+      case '"':
+        return peeked = PEEKED_DOUBLE_QUOTED_NAME;
+      case '\'':
+        checkLenient();
+        return peeked = PEEKED_SINGLE_QUOTED_NAME;
+      case '}':
+        if (peekStack != JsonScope.NONEMPTY_OBJECT) {
+          return peeked = PEEKED_END_OBJECT;
+        } else {
+          throw syntaxError("Expected name");
+        }
+      default:
+        checkLenient();
+        pos--; // Don't consume the first character in an unquoted string.
+        if (isLiteral((char) c)) {
+          return peeked = PEEKED_UNQUOTED_NAME;
+        } else {
+          throw syntaxError("Expected name");
+        }
     }
   }
 
   @SuppressWarnings("fallthrough")
-  private int doPeekDanglingName(int peekStack) throws IOException{
+  private int doPeekDanglingName(int peekStack) throws IOException {
     stack[stackSize - 1] = JsonScope.NONEMPTY_OBJECT;
     // Look for a colon before the value.
     int c = nextNonWhitespace(true);
     switch (c) {
-        case ':':
-            break;
-        case '=':
-            checkLenient();
-            if ((pos < limit || fillBuffer(1)) && buffer[pos] == '>') {
-                pos++;
-            }
-            break;
-        default:
-            throw syntaxError("Expected ':'");
+      case ':':
+        break;
+      case '=':
+        checkLenient();
+        if ((pos < limit || fillBuffer(1)) && buffer[pos] == '>') {
+          pos++;
+        }
+        break;
+      default:
+        throw syntaxError("Expected ':'");
     }
     return doPeekAfterSwitchPeekStack(peekStack);
   }
 
   @SuppressWarnings("fallthrough")
-  private int doPeekEmptyDocument(int peekStack) throws IOException{
+  private int doPeekEmptyDocument(int peekStack) throws IOException {
     if (strictness == Strictness.LENIENT) {
-        consumeNonExecutePrefix();
-    }       stack[stackSize - 1] = JsonScope.NONEMPTY_DOCUMENT;
+      consumeNonExecutePrefix();
+    }
+    stack[stackSize - 1] = JsonScope.NONEMPTY_DOCUMENT;
     return doPeekAfterSwitchPeekStack(peekStack);
   }
 
   @SuppressWarnings("fallthrough")
-  private int doPeekNonEmptyDocument(int peekStack) throws IOException{
+  private int doPeekNonEmptyDocument(int peekStack) throws IOException {
     int c = nextNonWhitespace(false);
     if (c == -1) {
-        return peeked = PEEKED_EOF;
+      return peeked = PEEKED_EOF;
     } else {
-        checkLenient();
-        pos--;
-    } 
+      checkLenient();
+      pos--;
+    }
     return doPeekAfterSwitchPeekStack(peekStack);
   }
 
   @SuppressWarnings("fallthrough")
-  private int doPeekAfterSwitchPeekStack(int peekStack) throws IOException{
+  private int doPeekAfterSwitchPeekStack(int peekStack) throws IOException {
     int c = nextNonWhitespace(true);
     switch (c) {
       case ']':
@@ -806,7 +807,8 @@ public class JsonReader implements Closeable {
   }
 
   private int peekNumber() throws IOException {
-    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save
+    // inner-loop field access.
     char[] buffer = this.buffer;
     int currentPeekedValue = pos;
     int currentLimit = limit;
@@ -1065,7 +1067,8 @@ public class JsonReader implements Closeable {
     if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED
+        || currentPeekedValue == PEEKED_DOUBLE_QUOTED) {
       peekedString = nextQuotedValue(currentPeekedValue == PEEKED_SINGLE_QUOTED ? '\'' : '"');
     } else if (currentPeekedValue == PEEKED_UNQUOTED) {
       peekedString = nextUnquotedValue();
@@ -1108,7 +1111,9 @@ public class JsonReader implements Closeable {
     if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED || currentPeekedValue == PEEKED_UNQUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED
+        || currentPeekedValue == PEEKED_DOUBLE_QUOTED
+        || currentPeekedValue == PEEKED_UNQUOTED) {
       if (currentPeekedValue == PEEKED_UNQUOTED) {
         peekedString = nextUnquotedValue();
       } else {
@@ -1146,7 +1151,8 @@ public class JsonReader implements Closeable {
    * @param quote either ' or ".
    */
   private String nextQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save
+    // inner-loop field access.
     char[] buffer = this.buffer;
     StringBuilder builder = null;
     while (true) {
@@ -1262,7 +1268,8 @@ public class JsonReader implements Closeable {
   }
 
   private void skipQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save
+    // inner-loop field access.
     char[] buffer = this.buffer;
     do {
       int currentPeekedValue = pos;
@@ -1350,7 +1357,9 @@ public class JsonReader implements Closeable {
     if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED || currentPeekedValue == PEEKED_UNQUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED
+        || currentPeekedValue == PEEKED_DOUBLE_QUOTED
+        || currentPeekedValue == PEEKED_UNQUOTED) {
       if (currentPeekedValue == PEEKED_UNQUOTED) {
         peekedString = nextUnquotedValue();
       } else {

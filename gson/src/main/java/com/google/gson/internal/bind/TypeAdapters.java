@@ -16,6 +16,19 @@
 
 package com.google.gson.internal.bind;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.internal.LazilyParsedNumber;
+import com.google.gson.internal.NumberLimits;
+import com.google.gson.internal.TroubleshootingGuide;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -35,20 +48,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.internal.LazilyParsedNumber;
-import com.google.gson.internal.NumberLimits;
-import com.google.gson.internal.TroubleshootingGuide;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 
 /**
  * Type adapters for basic types. More complex adapters exist as separate classes in the enclosing
@@ -183,54 +182,59 @@ public final class TypeAdapters {
   public static final TypeAdapterFactory BOOLEAN_FACTORY =
       newFactory(boolean.class, Boolean.class, BOOLEAN);
 
-  public static TypeAdapter<Number> createTypeAdapter(int max, int min, String type){
-    return new TypeAdapter<Number>(){
+  public static TypeAdapter<Number> createTypeAdapter(int max, int min, String type) {
+    return new TypeAdapter<Number>() {
       @Override
-        public Number read(JsonReader in) throws IOException {
-          if (in.peek() == JsonToken.NULL) {
-            in.nextNull();
-            return null;
-          }
-
-          int intValue;
-          try {
-            intValue = in.nextInt();
-          } catch (NumberFormatException e) {
-            throw new JsonSyntaxException(e);
-          }
-          // Allow up to 255 to support unsigned values
-          if (intValue > max || intValue < min) {
-            throw new JsonSyntaxException(
-                "Lossy conversion from " + intValue + " to " + type + "; at path " + in.getPreviousPath());
-          }
-          if(type.equals("byte")){
-            return (byte) intValue;
-          }
-          else{
-            return (short) intValue;
-          }
+      public Number read(JsonReader in) throws IOException {
+        if (in.peek() == JsonToken.NULL) {
+          in.nextNull();
+          return null;
         }
 
-        @Override
-        public void write(JsonWriter out, Number value) throws IOException {
-          if (value == null) {
-            out.nullValue();
+        int intValue;
+        try {
+          intValue = in.nextInt();
+        } catch (NumberFormatException e) {
+          throw new JsonSyntaxException(e);
+        }
+        // Allow up to 255 to support unsigned values
+        if (intValue > max || intValue < min) {
+          throw new JsonSyntaxException(
+              "Lossy conversion from "
+                  + intValue
+                  + " to "
+                  + type
+                  + "; at path "
+                  + in.getPreviousPath());
+        }
+        if (type.equals("byte")) {
+          return (byte) intValue;
+        } else {
+          return (short) intValue;
+        }
+      }
+
+      @Override
+      public void write(JsonWriter out, Number value) throws IOException {
+        if (value == null) {
+          out.nullValue();
+        } else {
+          if (type.equals("byte")) {
+            out.value(value.byteValue());
           } else {
-            if(type.equals("byte")){
-              out.value(value.byteValue());
-            }
-            else{
-              out.value(value.shortValue());
-            }
+            out.value(value.shortValue());
           }
         }
+      }
     };
   }
+
   public static final TypeAdapter<Number> BYTE = createTypeAdapter(255, Byte.MIN_VALUE, "byte");
 
   public static final TypeAdapterFactory BYTE_FACTORY = newFactory(byte.class, Byte.class, BYTE);
 
-  public static final TypeAdapter<Number> SHORT = createTypeAdapter(65535, Short.MIN_VALUE, "short");
+  public static final TypeAdapter<Number> SHORT =
+      createTypeAdapter(65535, Short.MIN_VALUE, "short");
 
   public static final TypeAdapterFactory SHORT_FACTORY =
       newFactory(short.class, Short.class, SHORT);

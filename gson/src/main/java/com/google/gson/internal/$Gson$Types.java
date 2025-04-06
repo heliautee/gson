@@ -573,8 +573,8 @@ public final class $Gson$Types {
       if (length == 0) {
         return typeToString(rawType);
       }
-
-      StringBuilder stringBuilder = new StringBuilder(30 * (length + 1));
+      int estimatedSizeFactor = 30;
+      StringBuilder stringBuilder = new StringBuilder(estimatedSizeFactor * (length + 1));
       stringBuilder
           .append(typeToString(rawType))
           .append("<")

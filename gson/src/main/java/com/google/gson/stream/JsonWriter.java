@@ -234,6 +234,19 @@ public class JsonWriter implements Closeable, Flushable {
     setFormattingStyle(FormattingStyle.COMPACT);
   }
 
+  public JsonWriter(
+      Writer out,
+      FormattingStyle formattingStyle,
+      boolean htmlSafe,
+      Strictness strictness,
+      boolean serializeNulls) {
+    this.out = Objects.requireNonNull(out, "out == null");
+    setFormattingStyle(formattingStyle);
+    setHtmlSafe(htmlSafe);
+    setStrictness(strictness);
+    setSerializeNulls(serializeNulls);
+  }
+
   /**
    * Sets the indentation string to be repeated for each level of indentation in the encoded
    * document. If {@code indent.isEmpty()} the encoded document will be compact. Otherwise the

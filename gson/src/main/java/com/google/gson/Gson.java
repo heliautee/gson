@@ -38,6 +38,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import com.google.gson.stream.JsonWriterBuilder;
 import com.google.gson.stream.MalformedJsonException;
 import java.io.EOFException;
 import java.io.IOException;
@@ -848,11 +849,14 @@ public final class Gson {
     if (generateNonExecutableJson) {
       writer.write(JSON_NON_EXECUTABLE_PREFIX);
     }
-    JsonWriter jsonWriter = new JsonWriter(writer);
-    jsonWriter.setFormattingStyle(formattingStyle);
-    jsonWriter.setHtmlSafe(htmlSafe);
-    jsonWriter.setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness);
-    jsonWriter.setSerializeNulls(serializeNulls);
+    JsonWriter jsonWriter =
+        new JsonWriterBuilder()
+            .setOut(writer)
+            .setFormattingStyle(formattingStyle)
+            .setHtmlSafe(htmlSafe)
+            .setStrictness(strictness == null ? Strictness.LEGACY_STRICT : strictness)
+            .setSerializeNulls(serializeNulls)
+            .build();
     return jsonWriter;
   }
 

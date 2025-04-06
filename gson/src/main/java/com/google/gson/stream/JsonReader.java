@@ -459,11 +459,11 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not the beginning of an array.
    */
   public void beginArray() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_BEGIN_ARRAY) {
+    if (currentPeekedValue == PEEKED_BEGIN_ARRAY) {
       push(JsonScope.EMPTY_ARRAY);
       pathIndices[stackSize - 1] = 0;
       peeked = PEEKED_NONE;
@@ -479,11 +479,11 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not the end of an array.
    */
   public void endArray() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_END_ARRAY) {
+    if (currentPeekedValue == PEEKED_END_ARRAY) {
       stackSize--;
       pathIndices[stackSize - 1]++;
       peeked = PEEKED_NONE;
@@ -499,11 +499,11 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not the beginning of an object.
    */
   public void beginObject() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_BEGIN_OBJECT) {
+    if (currentPeekedValue == PEEKED_BEGIN_OBJECT) {
       push(JsonScope.EMPTY_OBJECT);
       peeked = PEEKED_NONE;
     } else {
@@ -518,11 +518,11 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not the end of an object.
    */
   public void endObject() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_END_OBJECT) {
+    if (currentPeekedValue == PEEKED_END_OBJECT) {
       stackSize--;
       pathNames[stackSize] = null; // Free the last path name so that it can be garbage collected!
       pathIndices[stackSize - 1]++;
@@ -534,21 +534,21 @@ public class JsonReader implements Closeable {
 
   /** Returns true if the current array or object has another element. */
   public boolean hasNext() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    return p != PEEKED_END_OBJECT && p != PEEKED_END_ARRAY && p != PEEKED_EOF;
+    return currentPeekedValue != PEEKED_END_OBJECT && currentPeekedValue != PEEKED_END_ARRAY && currentPeekedValue != PEEKED_EOF;
   }
 
   /** Returns the type of the next token without consuming it. */
   public JsonToken peek() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
 
-    switch (p) {
+    switch (currentPeekedValue) {
       case PEEKED_BEGIN_OBJECT:
         return JsonToken.BEGIN_OBJECT;
       case PEEKED_END_OBJECT:
@@ -806,10 +806,10 @@ public class JsonReader implements Closeable {
   }
 
   private int peekNumber() throws IOException {
-    // Like nextNonWhitespace, this uses locals 'p' and 'l' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
     char[] buffer = this.buffer;
-    int p = pos;
-    int l = limit;
+    int currentPeekedValue = pos;
+    int currentLimit = limit;
 
     long value = 0; // Negative to accommodate Long.MIN_VALUE more easily.
     boolean negative = false;
@@ -820,7 +820,7 @@ public class JsonReader implements Closeable {
 
     charactersOfNumber:
     for (; true; i++) {
-      if (p + i == l) {
+      if (currentPeekedValue + i == currentLimit) {
         if (i == buffer.length) {
           // Though this looks like a well-formed number, it's too long to continue reading. Give up
           // and let the application handle this as an unquoted literal.
@@ -829,11 +829,11 @@ public class JsonReader implements Closeable {
         if (!fillBuffer(i + 1)) {
           break;
         }
-        p = pos;
-        l = limit;
+        currentPeekedValue = pos;
+        currentLimit = limit;
       }
 
-      char c = buffer[p + i];
+      char c = buffer[currentPeekedValue + i];
       switch (c) {
         case '-':
           if (last == NUMBER_CHAR_NONE) {
@@ -947,16 +947,16 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not a property name.
    */
   public String nextName() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
     String result;
-    if (p == PEEKED_UNQUOTED_NAME) {
+    if (currentPeekedValue == PEEKED_UNQUOTED_NAME) {
       result = nextUnquotedValue();
-    } else if (p == PEEKED_SINGLE_QUOTED_NAME) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED_NAME) {
       result = nextQuotedValue('\'');
-    } else if (p == PEEKED_DOUBLE_QUOTED_NAME) {
+    } else if (currentPeekedValue == PEEKED_DOUBLE_QUOTED_NAME) {
       result = nextQuotedValue('"');
     } else {
       throw unexpectedTokenError("a name");
@@ -973,23 +973,23 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not a string.
    */
   public String nextString() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
     String result;
-    if (p == PEEKED_UNQUOTED) {
+    if (currentPeekedValue == PEEKED_UNQUOTED) {
       result = nextUnquotedValue();
-    } else if (p == PEEKED_SINGLE_QUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED) {
       result = nextQuotedValue('\'');
-    } else if (p == PEEKED_DOUBLE_QUOTED) {
+    } else if (currentPeekedValue == PEEKED_DOUBLE_QUOTED) {
       result = nextQuotedValue('"');
-    } else if (p == PEEKED_BUFFERED) {
+    } else if (currentPeekedValue == PEEKED_BUFFERED) {
       result = peekedString;
       peekedString = null;
-    } else if (p == PEEKED_LONG) {
+    } else if (currentPeekedValue == PEEKED_LONG) {
       result = Long.toString(peekedLong);
-    } else if (p == PEEKED_NUMBER) {
+    } else if (currentPeekedValue == PEEKED_NUMBER) {
       result = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
     } else {
@@ -1006,15 +1006,15 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not a boolean.
    */
   public boolean nextBoolean() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_TRUE) {
+    if (currentPeekedValue == PEEKED_TRUE) {
       peeked = PEEKED_NONE;
       pathIndices[stackSize - 1]++;
       return true;
-    } else if (p == PEEKED_FALSE) {
+    } else if (currentPeekedValue == PEEKED_FALSE) {
       peeked = PEEKED_NONE;
       pathIndices[stackSize - 1]++;
       return false;
@@ -1028,11 +1028,11 @@ public class JsonReader implements Closeable {
    * @throws IllegalStateException if the next token is not a JSON null.
    */
   public void nextNull() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
-    if (p == PEEKED_NULL) {
+    if (currentPeekedValue == PEEKED_NULL) {
       peeked = PEEKED_NONE;
       pathIndices[stackSize - 1]++;
     } else {
@@ -1051,25 +1051,25 @@ public class JsonReader implements Closeable {
    *     not {@link #setStrictness(Strictness) lenient}.
    */
   public double nextDouble() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
 
-    if (p == PEEKED_LONG) {
+    if (currentPeekedValue == PEEKED_LONG) {
       peeked = PEEKED_NONE;
       pathIndices[stackSize - 1]++;
       return (double) peekedLong;
     }
 
-    if (p == PEEKED_NUMBER) {
+    if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (p == PEEKED_SINGLE_QUOTED || p == PEEKED_DOUBLE_QUOTED) {
-      peekedString = nextQuotedValue(p == PEEKED_SINGLE_QUOTED ? '\'' : '"');
-    } else if (p == PEEKED_UNQUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED) {
+      peekedString = nextQuotedValue(currentPeekedValue == PEEKED_SINGLE_QUOTED ? '\'' : '"');
+    } else if (currentPeekedValue == PEEKED_UNQUOTED) {
       peekedString = nextUnquotedValue();
-    } else if (p != PEEKED_BUFFERED) {
+    } else if (currentPeekedValue != PEEKED_BUFFERED) {
       throw unexpectedTokenError("a double");
     }
 
@@ -1094,25 +1094,25 @@ public class JsonReader implements Closeable {
    *     exactly represented as a long.
    */
   public long nextLong() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
 
-    if (p == PEEKED_LONG) {
+    if (currentPeekedValue == PEEKED_LONG) {
       peeked = PEEKED_NONE;
       pathIndices[stackSize - 1]++;
       return peekedLong;
     }
 
-    if (p == PEEKED_NUMBER) {
+    if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (p == PEEKED_SINGLE_QUOTED || p == PEEKED_DOUBLE_QUOTED || p == PEEKED_UNQUOTED) {
-      if (p == PEEKED_UNQUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED || currentPeekedValue == PEEKED_UNQUOTED) {
+      if (currentPeekedValue == PEEKED_UNQUOTED) {
         peekedString = nextUnquotedValue();
       } else {
-        peekedString = nextQuotedValue(p == PEEKED_SINGLE_QUOTED ? '\'' : '"');
+        peekedString = nextQuotedValue(currentPeekedValue == PEEKED_SINGLE_QUOTED ? '\'' : '"');
       }
       try {
         long result = Long.parseLong(peekedString);
@@ -1146,16 +1146,16 @@ public class JsonReader implements Closeable {
    * @param quote either ' or ".
    */
   private String nextQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'p' and 'l' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
     char[] buffer = this.buffer;
     StringBuilder builder = null;
     while (true) {
-      int p = pos;
-      int l = limit;
+      int currentPeekedValue = pos;
+      int currentLimit = limit;
       /* the index of the first character not yet appended to the builder. */
-      int start = p;
-      while (p < l) {
-        int c = buffer[p++];
+      int start = currentPeekedValue;
+      while (currentPeekedValue < currentLimit) {
+        int c = buffer[currentPeekedValue++];
 
         // In strict mode, throw an exception when meeting unescaped control characters (U+0000
         // through U+001F)
@@ -1163,8 +1163,8 @@ public class JsonReader implements Closeable {
           throw syntaxError(
               "Unescaped control characters (\\u0000-\\u001F) are not allowed in strict mode");
         } else if (c == quote) {
-          pos = p;
-          int len = p - start - 1;
+          pos = currentPeekedValue;
+          int len = currentPeekedValue - start - 1;
           if (builder == null) {
             return new String(buffer, start, len);
           } else {
@@ -1172,29 +1172,29 @@ public class JsonReader implements Closeable {
             return builder.toString();
           }
         } else if (c == '\\') {
-          pos = p;
-          int len = p - start - 1;
+          pos = currentPeekedValue;
+          int len = currentPeekedValue - start - 1;
           if (builder == null) {
             int estimatedLength = (len + 1) * 2;
             builder = new StringBuilder(Math.max(estimatedLength, 16));
           }
           builder.append(buffer, start, len);
           builder.append(readEscapeCharacter());
-          p = pos;
-          l = limit;
-          start = p;
+          currentPeekedValue = pos;
+          currentLimit = limit;
+          start = currentPeekedValue;
         } else if (c == '\n') {
           lineNumber++;
-          lineStart = p;
+          lineStart = currentPeekedValue;
         }
       }
 
       if (builder == null) {
-        int estimatedLength = (p - start) * 2;
+        int estimatedLength = (currentPeekedValue - start) * 2;
         builder = new StringBuilder(Math.max(estimatedLength, 16));
       }
-      builder.append(buffer, start, p - start);
-      pos = p;
+      builder.append(buffer, start, currentPeekedValue - start);
+      pos = currentPeekedValue;
       if (!fillBuffer(1)) {
         throw syntaxError("Unterminated string");
       }
@@ -1262,28 +1262,28 @@ public class JsonReader implements Closeable {
   }
 
   private void skipQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'p' and 'l' to save inner-loop field access.
+    // Like nextNonWhitespace, this uses locals 'currentPeekedValue' and 'currentLimit' to save inner-loop field access.
     char[] buffer = this.buffer;
     do {
-      int p = pos;
-      int l = limit;
+      int currentPeekedValue = pos;
+      int currentLimit = limit;
       /* the index of the first character not yet appended to the builder. */
-      while (p < l) {
-        int c = buffer[p++];
+      while (currentPeekedValue < currentLimit) {
+        int c = buffer[currentPeekedValue++];
         if (c == quote) {
-          pos = p;
+          pos = currentPeekedValue;
           return;
         } else if (c == '\\') {
-          pos = p;
+          pos = currentPeekedValue;
           char unused = readEscapeCharacter();
-          p = pos;
-          l = limit;
+          currentPeekedValue = pos;
+          currentLimit = limit;
         } else if (c == '\n') {
           lineNumber++;
-          lineStart = p;
+          lineStart = currentPeekedValue;
         }
       }
-      pos = p;
+      pos = currentPeekedValue;
     } while (fillBuffer(1));
     throw syntaxError("Unterminated string");
   }
@@ -1331,13 +1331,13 @@ public class JsonReader implements Closeable {
    *     exactly represented as an int.
    */
   public int nextInt() throws IOException {
-    int p = peeked;
-    if (p == PEEKED_NONE) {
-      p = doPeek();
+    int currentPeekedValue = peeked;
+    if (currentPeekedValue == PEEKED_NONE) {
+      currentPeekedValue = doPeek();
     }
 
     int result;
-    if (p == PEEKED_LONG) {
+    if (currentPeekedValue == PEEKED_LONG) {
       result = (int) peekedLong;
       if (peekedLong != result) { // Make sure no precision was lost casting to 'int'.
         throw new NumberFormatException("Expected an int but was " + peekedLong + locationString());
@@ -1347,14 +1347,14 @@ public class JsonReader implements Closeable {
       return result;
     }
 
-    if (p == PEEKED_NUMBER) {
+    if (currentPeekedValue == PEEKED_NUMBER) {
       peekedString = new String(buffer, pos, peekedNumberLength);
       pos += peekedNumberLength;
-    } else if (p == PEEKED_SINGLE_QUOTED || p == PEEKED_DOUBLE_QUOTED || p == PEEKED_UNQUOTED) {
-      if (p == PEEKED_UNQUOTED) {
+    } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED || currentPeekedValue == PEEKED_DOUBLE_QUOTED || currentPeekedValue == PEEKED_UNQUOTED) {
+      if (currentPeekedValue == PEEKED_UNQUOTED) {
         peekedString = nextUnquotedValue();
       } else {
-        peekedString = nextQuotedValue(p == PEEKED_SINGLE_QUOTED ? '\'' : '"');
+        peekedString = nextQuotedValue(currentPeekedValue == PEEKED_SINGLE_QUOTED ? '\'' : '"');
       }
       try {
         result = Integer.parseInt(peekedString);
@@ -1413,12 +1413,12 @@ public class JsonReader implements Closeable {
   public void skipValue() throws IOException {
     int count = 0;
     do {
-      int p = peeked;
-      if (p == PEEKED_NONE) {
-        p = doPeek();
+      int currentPeekedValue = peeked;
+      if (currentPeekedValue == PEEKED_NONE) {
+        currentPeekedValue = doPeek();
       }
 
-      switch (p) {
+      switch (currentPeekedValue) {
         case PEEKED_BEGIN_ARRAY:
           push(JsonScope.EMPTY_ARRAY);
           count++;
@@ -1543,38 +1543,38 @@ public class JsonReader implements Closeable {
    */
   private int nextNonWhitespace(boolean throwOnEof) throws IOException {
     /*
-     * This code uses ugly local variables 'p' and 'l' representing the 'pos'
+     * This code uses ugly local variables 'currentPeekedValue' and 'currentLimit' representing the 'pos'
      * and 'limit' fields respectively. Using locals rather than fields saves
      * a few field reads for each whitespace character in a pretty-printed
-     * document, resulting in a 5% speedup. We need to flush 'p' to its field
+     * document, resulting in a 5% speedup. We need to flush 'currentPeekedValue' to its field
      * before any (potentially indirect) call to fillBuffer() and reread both
-     * 'p' and 'l' after any (potentially indirect) call to the same method.
+     * 'currentPeekedValue' and 'currentLimit' after any (potentially indirect) call to the same method.
      */
     char[] buffer = this.buffer;
-    int p = pos;
-    int l = limit;
+    int currentPeekedValue = pos;
+    int currentLimit = limit;
     while (true) {
-      if (p == l) {
-        pos = p;
+      if (currentPeekedValue == currentLimit) {
+        pos = currentPeekedValue;
         if (!fillBuffer(1)) {
           break;
         }
-        p = pos;
-        l = limit;
+        currentPeekedValue = pos;
+        currentLimit = limit;
       }
 
-      int c = buffer[p++];
+      int c = buffer[currentPeekedValue++];
       if (c == '\n') {
         lineNumber++;
-        lineStart = p;
+        lineStart = currentPeekedValue;
         continue;
       } else if (c == ' ' || c == '\r' || c == '\t') {
         continue;
       }
 
       if (c == '/') {
-        pos = p;
-        if (p == l) {
+        pos = currentPeekedValue;
+        if (currentPeekedValue == currentLimit) {
           pos--; // push back '/' so it's still in the buffer when this method returns
           boolean charsLoaded = fillBuffer(2);
           pos++; // consume the '/' again
@@ -1592,23 +1592,23 @@ public class JsonReader implements Closeable {
             if (!skipTo("*/")) {
               throw syntaxError("Unterminated comment");
             }
-            p = pos + 2;
-            l = limit;
+            currentPeekedValue = pos + 2;
+            currentLimit = limit;
             continue;
 
           case '/':
             // skip a // end-of-line comment
             pos++;
             skipToEndOfLine();
-            p = pos;
-            l = limit;
+            currentPeekedValue = pos;
+            currentLimit = limit;
             continue;
 
           default:
             return c;
         }
       } else if (c == '#') {
-        pos = p;
+        pos = currentPeekedValue;
         /*
          * Skip a # hash end-of-line comment. The JSON RFC doesn't
          * specify this behaviour, but it's required to parse
@@ -1616,10 +1616,10 @@ public class JsonReader implements Closeable {
          */
         checkLenient();
         skipToEndOfLine();
-        p = pos;
-        l = limit;
+        currentPeekedValue = pos;
+        currentLimit = limit;
       } else {
-        pos = p;
+        pos = currentPeekedValue;
         return c;
       }
     }
@@ -1863,13 +1863,13 @@ public class JsonReader implements Closeable {
       return;
     }
 
-    int p = pos;
+    int currentPeekedValue = pos;
     char[] buf = buffer;
-    if (buf[p] != ')'
-        || buf[p + 1] != ']'
-        || buf[p + 2] != '}'
-        || buf[p + 3] != '\''
-        || buf[p + 4] != '\n') {
+    if (buf[currentPeekedValue] != ')'
+        || buf[currentPeekedValue + 1] != ']'
+        || buf[currentPeekedValue + 2] != '}'
+        || buf[currentPeekedValue + 3] != '\''
+        || buf[currentPeekedValue + 4] != '\n') {
       return; // not a security token!
     }
 
@@ -1886,15 +1886,15 @@ public class JsonReader implements Closeable {
               ((JsonTreeReader) reader).promoteNameToValue();
               return;
             }
-            int p = reader.peeked;
-            if (p == PEEKED_NONE) {
-              p = reader.doPeek();
+            int currentPeekedValue = reader.peeked;
+            if (currentPeekedValue == PEEKED_NONE) {
+              currentPeekedValue = reader.doPeek();
             }
-            if (p == PEEKED_DOUBLE_QUOTED_NAME) {
+            if (currentPeekedValue == PEEKED_DOUBLE_QUOTED_NAME) {
               reader.peeked = PEEKED_DOUBLE_QUOTED;
-            } else if (p == PEEKED_SINGLE_QUOTED_NAME) {
+            } else if (currentPeekedValue == PEEKED_SINGLE_QUOTED_NAME) {
               reader.peeked = PEEKED_SINGLE_QUOTED;
-            } else if (p == PEEKED_UNQUOTED_NAME) {
+            } else if (currentPeekedValue == PEEKED_UNQUOTED_NAME) {
               reader.peeked = PEEKED_UNQUOTED;
             } else {
               throw reader.unexpectedTokenError("a name");

@@ -517,6 +517,19 @@ public final class GsonTest {
     assertThat(customClass3.s).isEqualTo(CustomClass3.NO_ARG_CONSTRUCTOR_VALUE);
   }
 
+  @Test
+  public void testFromJsonSuccess() {
+    String json = "{\"clé\":\"valeur\"}";
+    Object object = new Gson().fromJson(json, Object.class);
+    assertThat(object.toString()).isEqualTo("{clé=valeur}");
+  }
+
+  @Test
+  public void testFromJsonFailure() {
+    String json = "{\"clé\":\"valeur";
+    assertThrows(JsonSyntaxException.class, () -> new Gson().fromJson(json, Object.class));
+  }
+
   /**
    * Modifying a GsonBuilder obtained from {@link Gson#newBuilder()} of a custom Gson instance
    * (created using a GsonBuilder) should not affect the Gson instance it came from.

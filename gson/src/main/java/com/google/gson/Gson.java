@@ -16,29 +16,6 @@
 
 package com.google.gson;
 
-import com.google.gson.annotations.JsonAdapter;
-import com.google.gson.internal.ConstructorConstructor;
-import com.google.gson.internal.Excluder;
-import com.google.gson.internal.GsonBuildConfig;
-import com.google.gson.internal.LazilyParsedNumber;
-import com.google.gson.internal.Primitives;
-import com.google.gson.internal.bind.ArrayTypeAdapter;
-import com.google.gson.internal.bind.CollectionTypeAdapterFactory;
-import com.google.gson.internal.bind.DefaultDateTypeAdapter;
-import com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory;
-import com.google.gson.internal.bind.JsonTreeReader;
-import com.google.gson.internal.bind.MapTypeAdapterFactory;
-import com.google.gson.internal.bind.NumberTypeAdapter;
-import com.google.gson.internal.bind.ObjectTypeAdapter;
-import com.google.gson.internal.bind.ReflectiveTypeAdapterFactory;
-import com.google.gson.internal.bind.SerializationDelegatingTypeAdapter;
-import com.google.gson.internal.bind.TypeAdapters;
-import com.google.gson.internal.sql.SqlTypesSupport;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
-import com.google.gson.stream.MalformedJsonException;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.Reader;
@@ -58,6 +35,30 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
+
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.internal.ConstructorConstructor;
+import com.google.gson.internal.Excluder;
+import com.google.gson.internal.GsonBuildConfig;
+import com.google.gson.internal.LazilyParsedNumber;
+import com.google.gson.internal.Primitives;
+import com.google.gson.internal.bind.ArrayTypeAdapter;
+import com.google.gson.internal.bind.CollectionTypeAdapterFactory;
+import com.google.gson.internal.bind.DefaultDateTypeAdapter;
+import com.google.gson.internal.bind.FutureTypeAdapter;
+import com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory;
+import com.google.gson.internal.bind.JsonTreeReader;
+import com.google.gson.internal.bind.MapTypeAdapterFactory;
+import com.google.gson.internal.bind.NumberTypeAdapter;
+import com.google.gson.internal.bind.ObjectTypeAdapter;
+import com.google.gson.internal.bind.ReflectiveTypeAdapterFactory;
+import com.google.gson.internal.bind.TypeAdapters;
+import com.google.gson.internal.sql.SqlTypesSupport;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import com.google.gson.stream.MalformedJsonException;
 
 /**
  * This is the main class for using Gson. Gson is typically used by first constructing a Gson
@@ -1394,53 +1395,6 @@ public final class Gson {
       throw new JsonSyntaxException(e);
     } catch (IOException e) {
       throw new JsonIOException(e);
-    }
-  }
-
-  /**
-   * Proxy type adapter for cyclic type graphs.
-   *
-   * <p><b>Important:</b> Setting the delegate adapter is not thread-safe; instances of {@code
-   * FutureTypeAdapter} must only be published to other threads after the delegate has been set.
-   *
-   * @see Gson#threadLocalAdapterResults
-   */
-  static class FutureTypeAdapter<T> extends SerializationDelegatingTypeAdapter<T> {
-    private TypeAdapter<T> delegate = null;
-
-    public void setDelegate(TypeAdapter<T> typeAdapter) {
-      if (delegate != null) {
-        throw new AssertionError("Delegate is already set");
-      }
-      delegate = typeAdapter;
-    }
-
-    private TypeAdapter<T> delegate() {
-      TypeAdapter<T> delegate = this.delegate;
-      if (delegate == null) {
-        // Can occur when adapter is leaked to other thread or when adapter is used for
-        // (de-)serialization
-        // directly within the TypeAdapterFactory which requested it
-        throw new IllegalStateException(
-            "Adapter for type with cyclic dependency has been used"
-                + " before dependency has been resolved");
-      }
-      return delegate;
-    }
-
-    @Override
-    public TypeAdapter<T> getSerializationDelegate() {
-      return delegate();
-    }
-
-    @Override
-    public T read(JsonReader in) throws IOException {
-      return delegate().read(in);
-    }
-
-    @Override
-    public void write(JsonWriter out, T value) throws IOException {
-      delegate().write(out, value);
     }
   }
 
